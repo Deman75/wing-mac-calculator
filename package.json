@@ -1,0 +1,13 @@
+{
+  "name": "wing-mac-calculator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Interactive mean aerodynamic chord calculator for a two-section wing",
+  "scripts": {
+    "check": "node scripts/check.cjs",
+    "test": "node scripts/check.cjs && node --test tests/geometry.cjs tests/build.cjs",
+    "build": "node scripts/build.cjs",
+    "preview": "node scripts/serve.cjs"
+  },
+  "engines": { "node": ">=24" }
+}

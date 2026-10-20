@@ -1,54 +1,6 @@
-// Development checks only. Sharing index.html does not require this file or Node.js.
-const fs = require('node:fs');
-const path = require('node:path');
-const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
-
-const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
-const source = html.match(/<script>([\s\S]*?)<\/script>/)[1];
-
-// A small DOM stub runs the application's actual calculations and SVG builders.
-// It does not check browser layout; that requires a separate browser run.
-class Element {
-  constructor(name = 'div') {
-    this.name = name;
-    this.attrs = {};
-    this.children = [];
-    this.value = '';
-    this.checked = false;
-    this.disabled = false;
-    this.textContent = '';
-    this.listeners = {};
-  }
-  setAttribute(key, value) { this.attrs[key] = String(value); }
-  set value(value) { this.inputValue = String(value); }
-  get value() { return this.inputValue; }
-  appendChild(node) {
-    this.children = this.children.filter(child => child !== node);
-    this.children.push(node);
-    return node;
-  }
-  addEventListener(event, handler) { this.listeners[event] = handler; }
-  set innerHTML(value) { this.children = []; this.html = value; }
-  get innerHTML() { return this.html; }
-}
-
-function app() {
-  const nodes = {};
-  const document = {
-    getElementById: id => nodes[id] ??= new Element(),
-    createElementNS: (_, name) => new Element(name)
-  };
-  for (const match of html.matchAll(/<input\b[^>]*id="([^"]+)"[^>]*>/g)) {
-    const input = document.getElementById(match[1]);
-    input.value = match[0].match(/value="([^"]*)"/)?.[1] ?? '';
-    input.checked = /\bchecked(?:=|\s|\/?>)/.test(match[0]);
-  }
-  const context = vm.createContext({ document });
-  vm.runInContext(source.replace(/\}\)\(\);\s*$/, 'globalThis.api = {calc, update, inputs, out, svg, assembly};})();'), context);
-  return { ...context.api, elements: nodes };
-}
+const { app } = require('./helpers.cjs');
 
 const base = { innerSpan: 0, rootChord: 300, jointChord: 150, innerSweep: 0,
   outerSpan: 1000, tipChord: 300, outerSweep: 0, cgPercent: 25 };
