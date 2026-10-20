@@ -308,7 +308,7 @@
       .legend { grid-template-columns: 1fr 1fr; }
       .numericLegend { grid-template-columns: 1fr; }
     }
-  
+
 /* Compact two-column cockpit layout */
 main { max-width:1550px; padding:20px; }
 main>h1 { font-size:24px; }
