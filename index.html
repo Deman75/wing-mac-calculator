@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>SVG расчет САХ крыла из двух трапециевидных секций</title>
+<style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --text: #172033;
+      --muted: #64748b;
+      --line: #dbe3ee;
+      --blue: #2563eb;
+      --red: #dc2626;
+      --orange: #ea580c;
+      --green: #15803d;
+      --purple: #7c3aed;
+      --cyan: #0891b2;
+      --slate: #334155;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    main {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 22px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.15;
+    }
+
+    .intro {
+      color: var(--muted);
+      margin: 0 0 18px;
+      line-height: 1.5;
+      max-width: 1080px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 410px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.07);
+      overflow: hidden;
+    }
+
+    .form { padding: 18px; }
+
+    .sectionTitle {
+      margin: 4px 0 12px;
+      padding: 9px 11px;
+      border-radius: 12px;
+      font-weight: 850;
+      font-size: 14px;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+    }
+
+    .sectionTitle.inner { color: #6d28d9; background: #f5f3ff; border-color: #ddd6fe; }
+    .sectionTitle.outer { color: #0e7490; background: #ecfeff; border-color: #a5f3fc; }
+
+    .field { margin-bottom: 14px; }
+
+    label {
+      display: block;
+      font-weight: 750;
+      margin-bottom: 6px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 72px;
+      gap: 8px;
+      align-items: center;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 10px 11px;
+      font: inherit;
+      color: var(--text);
+      background: white;
+    }
+
+    input[type="number"]:focus {
+      outline: 2px solid rgba(37, 99, 235, 0.18);
+      border-color: var(--blue);
+    }
+
+    .checkrow {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.35;
+      margin-top: 4px;
+    }
+
+    .checkrow input { margin-top: 2px; }
+
+    .unit {
+      color: var(--muted);
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .hint {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .result {
+      border-top: 1px solid var(--line);
+      padding: 16px 18px 18px;
+      background: #fbfdff;
+    }
+
+    .big {
+      font-size: 24px;
+      font-weight: 850;
+      margin: 0 0 6px;
+    }
+
+    .sub {
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 14px;
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 8px 12px;
+      margin-top: 14px;
+      font-size: 14px;
+    }
+
+    .kv div:nth-child(odd) { color: var(--muted); }
+    .kv div:nth-child(even) { font-weight: 750; text-align: right; }
+
+    .status {
+      margin-top: 12px;
+      padding: 11px 13px;
+      border-radius: 12px;
+      font-weight: 750;
+      line-height: 1.35;
+    }
+
+    .status.ok { background: #dcfce7; color: #166534; }
+    .status.warn { background: #ffedd5; color: #9a3412; }
+    .status.bad { background: #fee2e2; color: #991b1b; }
+
+    .svgWrap {
+      padding: 8px;
+      background:
+        linear-gradient(to bottom, #eff6ff 0%, #ffffff 72%, #f8fafc 100%);
+    }
+
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: transparent;
+    }
+
+    .wing-fill { fill: rgba(219, 234, 254, 0.56); }
+    .wing-outline { fill: none; stroke: var(--blue); stroke-width: 1.25; vector-effect: non-scaling-stroke; }
+    .axis-line { stroke: #111827; stroke-width: 1.1; stroke-dasharray: 7 6; vector-effect: non-scaling-stroke; }
+    .join-line { stroke: #64748b; stroke-width: 1.3; stroke-dasharray: 6 5; vector-effect: non-scaling-stroke; }
+    .construction { stroke: var(--orange); stroke-width: 1.3; stroke-dasharray: 8 7; vector-effect: non-scaling-stroke; fill: none; }
+    .construction-mid { stroke: var(--orange); stroke-width: 1.15; stroke-dasharray: 3 5; vector-effect: non-scaling-stroke; fill: none; }
+    .projection { stroke: var(--green); stroke-width: 1.45; stroke-dasharray: 5 5; vector-effect: non-scaling-stroke; fill: none; }
+    .dim { stroke: #64748b; stroke-width: 1.4; vector-effect: non-scaling-stroke; fill: none; }
+    .label-leader { stroke-width: 1.25; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; fill: none; }
+
+    .mac-total { stroke: var(--green); stroke-width: 4.6; vector-effect: non-scaling-stroke; stroke-linecap: round; }
+    .mac-inner { stroke: var(--purple); stroke-width: 3.2; vector-effect: non-scaling-stroke; stroke-linecap: round; }
+    .mac-outer { stroke: var(--cyan); stroke-width: 3.2; vector-effect: non-scaling-stroke; stroke-linecap: round; }
+
+    .svg-title {
+      font: 800 17px system-ui;
+      fill: var(--text);
+    }
+
+    .svg-text {
+      font: 700 12px system-ui;
+      fill: #334155;
+    }
+
+    .label-box {
+      fill: rgba(255,255,255,0.93);
+      stroke: rgba(203,213,225,0.95);
+      stroke-width: 1;
+    }
+
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px 10px;
+      padding: 12px 16px 10px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .legend-item {
+      display: flex;
+      gap: 7px;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 99px;
+      flex: none;
+    }
+
+    .numericLegend {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      padding: 0 16px 16px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 11px;
+      background: #fbfdff;
+    }
+
+    .metric .name {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .metric .value {
+      font-weight: 850;
+      font-size: 16px;
+      color: var(--text);
+    }
+
+    .metric .extra {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .metricsHero { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:14px; }
+    .metricsHero>div { background:#f1f5f9;border:1px solid #dbe3ee;border-radius:12px;padding:10px 12px; }
+    .metricsHero small { display:block;color:#64748b;font-size:12px;margin-bottom:5px; }
+    .metricsHero strong { display:block;font-size:19px;color:#172033;font-variant-numeric:tabular-nums; }
+    .metricsHero .cgHero { background:#fff1f2;border-color:#fecdd3; }
+    .metricsHero .cgHero strong { color:#b91c1c; }
+    .formula {
+      margin-top: 18px;
+      padding: 14px 16px;
+      border-radius: 15px;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      color: #7c2d12;
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .formula p {
+      margin: 0 0 10px;
+    }
+
+    .formula p:last-child {
+      margin-bottom: 0;
+    }
+
+    code {
+      background: rgba(15, 23, 42, 0.07);
+      padding: 1px 5px;
+      border-radius: 6px;
+    }
+
+    @media (max-width: 1020px) {
+      main { padding: 14px; }
+      .grid { grid-template-columns: 1fr; }
+      h1 { font-size: 23px; }
+      .legend { grid-template-columns: 1fr 1fr; }
+      .numericLegend { grid-template-columns: 1fr; }
+    }
+  
+/* Compact two-column cockpit layout */
+main { max-width:1550px; padding:20px; }
+main>h1 { font-size:24px; }
+.intro { font-size:14px; margin-bottom:12px; }
+.grid { grid-template-columns:minmax(300px,340px) minmax(0,1fr); gap:16px; }
+.form { padding:12px; }
+.input-accordion {border:1px solid var(--line);border-radius:12px;margin-bottom:9px;background:#fff;overflow:hidden;}
+.input-accordion summary,.output-accordion summary,.explanation summary {cursor:pointer;user-select:none;list-style:none;font-weight:800;display:flex;align-items:center;gap:8px;padding:12px 14px;color:#263348;}
+.input-accordion summary:after,.output-accordion summary:after,.explanation summary:after {content:'⌄';margin-left:auto;font-size:18px;color:#64748b;transition:transform .15s;}
+.input-accordion[open] summary:after,.output-accordion[open] summary:after,.explanation[open] summary:after {transform:rotate(180deg);}
+.input-accordion summary::-webkit-details-marker,.output-accordion summary::-webkit-details-marker,.explanation summary::-webkit-details-marker {display:none;}
+.input-accordion .input-content {padding:0 12px 8px;border-top:1px solid #edf2f7;}
+.form .field {margin:9px 0;}
+.form label {font-size:12px;margin-bottom:4px;line-height:1.3;}
+.form input[type='number'] {padding:7px 9px;font-size:14px;}
+.form .row {grid-template-columns:minmax(0,1fr) 55px;gap:6px;}
+.form .hint {font-size:11px;line-height:1.3;margin-top:3px;}
+.cg-setting {border:1px solid #fecdd3;background:#fff9fa;border-radius:12px;padding:9px 12px;margin:10px 0;}
+.cg-setting-title {font-weight:800;color:#b91c1c;font-size:13px;margin-bottom:5px;}
+.cg-setting .field {margin:0;}
+.extra-settings .field {margin:8px 0;}
+.results-strip {padding:12px 14px 6px;background:white;}
+.metricsHero {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0;}
+.metricsHero>div {padding:10px 12px;min-width:0;}
+.metricsHero strong {font-size:clamp(14px,1.4vw,21px);white-space:nowrap;}
+.metricsHero small {font-size:11px;line-height:1.25;min-height:28px;}
+.svgWrap {padding:4px 8px;}
+svg {max-height:65vh;}
+.legend {grid-template-columns:repeat(3,minmax(0,1fr));padding:8px 15px;gap:7px;font-size:11px;}
+.legend .dot {width:9px;height:9px;}
+.output-accordion {border-top:1px solid var(--line);background:#fff;}
+.output-accordion summary {font-size:13px;padding:11px 16px;}
+.output-accordion .kv {margin:0;padding:0 16px 16px;grid-template-columns:minmax(0,1fr) auto;font-size:12px;}
+.output-accordion .numericLegend {padding:0 16px 14px;grid-template-columns:repeat(3,minmax(0,1fr));}
+.duplicateValue {display:none;}
+#status {display:none;margin:8px 16px 12px;font-size:12px;}
+#status.warn,#status.bad {display:block;}
+.sr-only {position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+.formula {background:#fff;border:1px solid var(--line);color:#475569;font-size:13px;padding:0 15px 12px;}
+.formula:not([open]) {padding-bottom:0;}
+.formula summary {margin:0 -15px 9px;}
+@media(max-width:1150px) {
+ .grid {grid-template-columns:310px minmax(0,1fr);}
+ .metricsHero {grid-template-columns:repeat(2,minmax(0,1fr));}
+ .metricsHero small {min-height:0;}
+}
+@media(max-width:850px) {
+ .grid {grid-template-columns:1fr;}
+ svg {max-height:none;}
+ .metricsHero {grid-template-columns:repeat(2,minmax(0,1fr));}
+ .legend {grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+input:disabled { background:#f1f5f9; color:#64748b; cursor:not-allowed; }
+.section-switch { margin-bottom:12px; align-items:center; cursor:pointer; }
+.section-switch input {
+ appearance:none; position:relative; flex:none; width:44px; height:26px; margin:0;
+ border:1px solid #94a3b8; border-radius:20px; background:#cbd5e1; cursor:pointer;
+}
+.section-switch input::before {
+ content:''; position:absolute; width:20px; height:20px; left:2px; top:2px;
+ border-radius:50%; background:#fff; box-shadow:0 1px 3px #64748b;
+}
+.section-switch input:checked { background:var(--blue); border-color:var(--blue); }
+.section-switch input:checked::before { transform:translateX(18px); }
+.section-switch input:focus-visible { outline:3px solid #93c5fd; outline-offset:3px; }
+input[type="number"]:read-only { background:#f1f5f9; color:#64748b; }
+.scroll-hint { display:none; margin:4px 16px 10px; color:var(--muted); font-size:12px; }
+.mobile-nav,.diagram-tools { display:none; }
+#results[data-compact='true'] .legend-item:not(:first-child):not(:nth-child(5)) { display:none; }
+.svgWrap { overflow-x:auto; }
+#assembly { width:100%; max-width:400px; max-height:none; margin:0 auto 12px; }
+[hidden] { display:none !important; }
+@media(max-width:850px) {
+ main { padding:12px; }
+ main>h1 { font-size:22px; }
+ .intro { font-size:13px; }
+ #parameters,#results { scroll-margin-top:72px; }
+ .mobile-nav { display:flex; gap:8px; position:sticky; top:0; z-index:5; padding:8px 0; background:var(--bg); }
+ .mobile-nav a { flex:1; display:flex; justify-content:center; align-items:center; min-height:44px; padding:8px; border:1px solid var(--line); border-radius:12px; background:white; color:var(--blue); font-size:14px; font-weight:750; text-decoration:none; }
+ .form label { font-size:14px; }
+ .form input[type='number'] { min-height:44px; font-size:16px; padding:10px; }
+ .form .hint { font-size:12px; }
+ .section-switch { min-height:44px; }
+ .input-accordion summary,.output-accordion summary { min-height:48px; }
+ .metricsHero strong { font-size:clamp(16px,4.5vw,21px); white-space:normal; overflow-wrap:anywhere; }
+ .metricsHero small { font-size:12px; }
+ .metricsHero>div { padding:10px; }
+ .diagram-tools { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 12px; font-size:14px; font-weight:750; }
+ .diagram-tools button { min-height:44px; border:1px solid var(--line); border-radius:10px; padding:8px 12px; background:white; color:var(--blue); font:inherit; cursor:pointer; }
+ #scheme { min-width:0; max-height:none; }
+ .svgWrap[data-zoomed='true'] #scheme { min-width:980px; }
+ .svgWrap[data-zoomed='true'] + .scroll-hint { display:block; }
+ .legend { font-size:12px; line-height:1.4; }
+ .output-accordion .numericLegend { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+<main>
+<h1>SVG расчет САХ крыла из двух трапециевидных секций</h1>
+<p class="intro">
+    Правое полукрыло состоит из внутренней и внешней секции. Каждая секция может быть прямоугольной
+    или трапециевидной, со своей стреловидностью по передней кромке. Если размах внутренней секции
+    поставить 0, калькулятор работает как обычный расчет трапециевидного крыла.
+  </p>
+<nav class="mobile-nav" aria-label="Переход к разделу"><a href="#parameters">Параметры крыла</a><a href="#results">Результат и схема</a></nav>
+<div class="grid">
+<section class="card" id="parameters">
+<div class="form">
+<label class="checkrow section-switch"><input id="useInner" type="checkbox" role="switch" aria-controls="innerSection" checked=""/><span>Есть внутренняя секция (центроплан)</span></label>
+<details class="input-accordion" id="innerSection" open=""><summary>Внутренняя секция</summary><div class="input-content"><div class="field">
+<label for="innerSpan">Размах внутренней секции</label>
+<div class="row">
+<input id="innerSpan" min="0" step="0.01" inputmode="decimal" type="number" value="300"/>
+<div class="unit">мм</div>
+</div>
+<div class="hint">Это половина размаха центроплана. Для обычного крыла можно поставить 0.</div>
+</div><div class="field">
+<label for="rootChord">Начальная хорда у оси симметрии</label>
+<div class="row">
+<input id="rootChord" min="1" step="0.01" inputmode="decimal" type="number" value="320"/>
+<div class="unit">мм</div>
+</div>
+<div class="hint">Корневая хорда всего крыла. Без центроплана задаётся во внешней секции.</div>
+</div><div class="field">
+<label for="jointChord">Конечная хорда внутренней секции / корневая хорда внешней</label>
+<div class="row">
+<input id="jointChord" min="0" step="0.01" inputmode="decimal" type="number" value="300"/>
+<div class="unit">мм</div>
+</div>
+<div class="hint">Без внутренней секции не используется. Нулевая хорда допустима только без внешней секции.</div>
+</div><div class="field">
+<label for="innerSweep">Стреловидность передней кромки внутренней секции</label>
+<div class="row">
+<input id="innerSweep" step="0.01" inputmode="decimal" type="number" value="0"/>
+<div class="unit">град</div>
+</div>
+<div class="hint">Плюс — передняя кромка у стыка уходит назад.</div>
+</div></div></details><details class="input-accordion" id="outerSection" open=""><summary>Внешняя секция</summary><div class="input-content"><div class="field">
+<label for="outerRootChord">Начальная хорда внешней секции</label>
+<div class="row">
+<input id="outerRootChord" min="0" step="0.01" inputmode="decimal" type="number" value="300" readonly="" aria-describedby="outerRootHint"/>
+<div class="unit">мм</div>
+</div>
+<div class="hint" id="outerRootHint">Равна конечной хорде внутренней секции; изменяется там.</div>
+</div><div class="field">
+<label for="outerSpan">Размах внешней секции</label>
+<div class="row">
+<input id="outerSpan" min="0" step="0.01" inputmode="decimal" type="number" value="700"/>
+<div class="unit">мм</div>
+</div>
+<div class="hint">От стыка секций до законцовки.</div>
+</div><div class="field">
+<label for="tipChord">Концевая хорда крыла</label>
+<div class="row">
+<input id="tipChord" min="0" step="0.01" inputmode="decimal" type="number" value="160"/>
+<div class="unit">мм</div>
+</div>
+<div class="hint">Хорда на законцовке.</div>
+</div><div class="field">
+<label for="outerSweep">Стреловидность передней кромки внешней секции</label>
+<div class="row">
+<input id="outerSweep" step="0.01" inputmode="decimal" type="number" value="10"/>
+<div class="unit">град</div>
+</div>
+<div class="hint">Плюс — законцовка уходит назад относительно стыка секций.</div>
+</div></div></details><div class="cg-setting"><div class="cg-setting-title">Центровка, % САХ</div><div class="field">
+<label for="cgPercent">Центровка от передней кромки САХ</label>
+<div class="row">
+<input id="cgPercent" max="200" min="-100" step="0.01" inputmode="decimal" type="number" value="25"/>
+<div class="unit">% САХ</div>
+</div>
+<div class="hint">Например, 25% — четверть длины САХ от её передней кромки. На схеме точка центровки отмечена красным.</div>
+</div></div><details class="input-accordion extra-settings"><summary>Настройки отображения</summary><div class="input-content"><div class="field">
+<label>Отображение</label>
+<label class="checkrow">
+<input checked="" id="showConstruction" type="checkbox"/>
+<span>Показать САХ секций, вспомогательные линии и мини-схему сборки общей САХ</span>
+</label>
+</div></div></details></div>
+
+</section>
+<section class="card" id="results"><div class="results-strip"><div class="metricsHero">
+<div><small>По размаху Y</small><strong id="heroY">—</strong></div>
+<div><small>Сдвиг X</small><strong id="heroX">—</strong></div>
+<div><small>Длина САХ</small><strong id="heroC">—</strong></div>
+<div class="cgHero"><small>ЦТ, от корневой передней кромки</small><strong id="heroCG">—</strong></div>
+</div><p class="sr-only" id="macText">—</p><div class="sr-only" id="macDetails">—</div></div>
+<div class="diagram-tools"><span>Схема крыла</span><button id="diagramZoom" type="button" aria-pressed="false" aria-controls="scheme">Увеличить</button></div>
+<div class="svgWrap" id="diagramWrap" data-zoomed="false">
+<svg aria-label="SVG схема расчета САХ крыла" id="scheme" role="img" viewbox="0 0 980 740"></svg>
+</div>
+<p class="scroll-hint">Прокручивайте чертёж по горизонтали, чтобы рассмотреть схему и подписи.</p>
+<div class="legend">
+<div class="legend-item"><span class="dot" style="background: var(--blue)"></span>тонкий контур полукрыла</div>
+<div class="legend-item"><span class="dot" style="background: var(--green)"></span>общая САХ крыла</div>
+<div class="legend-item"><span class="dot" style="background: var(--purple)"></span>САХ внутренней секции</div>
+<div class="legend-item"><span class="dot" style="background: var(--cyan)"></span>САХ внешней секции</div>
+<div class="legend-item"><span class="dot" style="background: var(--orange)"></span>вспомогательные линии</div>
+<div class="legend-item"><span class="dot" style="background: var(--red)"></span>заданная центровка (ЦТ)</div>
+</div>
+
+<details class="output-accordion" id="assemblyPanel"><summary>Как получается общая САХ</summary><svg id="assembly" viewBox="0 0 352 260" role="img" aria-label="Вклад площадей секций в общую САХ"></svg></details>
+<details class="output-accordion"><summary>Дополнительные расчётные данные</summary><div class="kv">
+<div>Площадь крыла</div><div id="areaText">—</div>
+<div>Полный размах</div><div id="spanText">—</div>
+<div>Удлинение</div><div id="arText">—</div>
+<div>САХ внутренней секции</div><div id="innerMacText">—</div>
+<div>САХ внешней секции</div><div id="outerMacText">—</div>
+<div class="duplicateValue">Общая САХ крыла</div><div class="duplicateValue" id="totalMacText">—</div>
+<div class="duplicateValue">Передняя кромка общей САХ</div><div class="duplicateValue" id="xMacText">—</div>
+<div class="duplicateValue">Положение общей САХ по полуразмаху</div><div class="duplicateValue" id="yMacText">—</div>
+<div>Заданная центровка</div><div id="cgPercentText">—</div>
+<div>Сдвиг от передней кромки САХ до ЦТ</div><div id="cgOffsetText">—</div>
+<div class="duplicateValue">Положение ЦТ по X от носка корня</div><div class="duplicateValue" id="cgXText">—</div>
+</div></details><div class="status" id="status"></div><details class="output-accordion"><summary>САХ отдельных секций</summary><div class="numericLegend">
+<div class="metric">
+<div class="name"><span class="dot" style="background: var(--purple)"></span>САХ внутренней секции</div>
+<div class="value" id="legendInnerMac">—</div>
+<div class="extra" id="legendInnerExtra">—</div>
+</div>
+<div class="metric">
+<div class="name"><span class="dot" style="background: var(--cyan)"></span>САХ внешней секции</div>
+<div class="value" id="legendOuterMac">—</div>
+<div class="extra" id="legendOuterExtra">—</div>
+</div>
+<div class="metric">
+<div class="name"><span class="dot" style="background: var(--green)"></span>Общая САХ крыла</div>
+<div class="value" id="legendTotalMac">—</div>
+<div class="extra" id="legendTotalExtra">—</div>
+</div>
+</div></details></section>
+</div>
+<details class="formula explanation"><summary>Как считаются САХ и координаты</summary>
+  <p><b>Как читать координаты:</b> на рисунке показаны оси <code>X</code> и <code>Y</code>.
+  Точка <code>(0, 0)</code> — передняя кромка крыла у оси симметрии. Ось <code>X</code> направлена
+  вдоль хорды назад, ось <code>Y</code> — вдоль размаха от оси симметрии к законцовке.</p>
+
+  <p><b>Формула длины общей САХ:</b> <code>САХ = Σ(Sᵢ · САХᵢ) / ΣSᵢ</code>.</p>
+  <p>Здесь:
+    <br><code>Sᵢ</code> — площадь <i>i</i>-й секции полукрыла;
+    <br><code>САХᵢ</code> — средняя аэродинамическая хорда этой секции;
+    <br><code>Σ(Sᵢ · САХᵢ)</code> — сумма вкладов всех секций, где каждая САХ берется с весом своей площади;
+    <br><code>ΣSᵢ</code> — суммарная площадь всех секций полукрыла.
+  </p>
+
+  <p><b>Координаты передней кромки общей САХ</b> считаются как средневзвешенные по площадям координаты
+  передних кромок САХ отдельных секций.</p>
+
+  <p><b>Заданная центровка</b> — это просто геометрическая точка на общей САХ, например
+  <code>25% САХ</code> или <code>30% САХ</code>, отсчитанная от её передней кромки.
+  Это <b>не</b> означает, что такая центровка автоматически является допустимой, безопасной
+  или предельно задней для самолёта. Допустимый диапазон центровок зависит от всей компоновки самолёта,
+  хвостового оперения, профилей, запаса продольной устойчивости и других факторов.</p>
+</details>
+</main>
+<script>
+(() => {
+  const NS = 'http://www.w3.org/2000/svg';
+  const $ = id => document.getElementById(id);
+
+  const inputs = {
+    useInner: $('useInner'),
+    innerSpan: $('innerSpan'),
+    rootChord: $('rootChord'),
+    jointChord: $('jointChord'),
+    innerSweep: $('innerSweep'),
+    outerSpan: $('outerSpan'),
+    outerRootChord: $('outerRootChord'),
+    tipChord: $('tipChord'),
+    outerSweep: $('outerSweep'),
+    cgPercent: $('cgPercent'),
+    showConstruction: $('showConstruction')
+  };
+
+  const out = {
+    macText: $('macText'),
+    macDetails: $('macDetails'),
+    areaText: $('areaText'),
+    spanText: $('spanText'),
+    arText: $('arText'),
+    innerMacText: $('innerMacText'),
+    outerMacText: $('outerMacText'),
+    totalMacText: $('totalMacText'),
+    xMacText: $('xMacText'),
+    yMacText: $('yMacText'),
+    cgPercentText: $('cgPercentText'),
+    cgOffsetText: $('cgOffsetText'),
+    cgXText: $('cgXText'),
+    heroY: $('heroY'), heroX: $('heroX'), heroC: $('heroC'), heroCG: $('heroCG'),
+    status: $('status'),
+    legendInnerMac: $('legendInnerMac'),
+    legendInnerExtra: $('legendInnerExtra'),
+    legendOuterMac: $('legendOuterMac'),
+    legendOuterExtra: $('legendOuterExtra'),
+    legendTotalMac: $('legendTotalMac'),
+    legendTotalExtra: $('legendTotalExtra')
+  };
+
+  const svg = $('scheme');
+  const assembly = $('assembly');
+  const assemblyPanel = $('assemblyPanel');
+  const diagramZoom = $('diagramZoom');
+  const diagramWrap = $('diagramWrap');
+  const mobileScreen = globalThis.matchMedia?.('(max-width: 850px)');
+  let zoomed = false;
+  let compact = false;
+  let W = 980;
+  let H = 740;
+
+  const colors = {
+    blue: '#2563eb',
+    red: '#dc2626',
+    orange: '#ea580c',
+    green: '#15803d',
+    purple: '#7c3aed',
+    cyan: '#0891b2',
+    slate: '#334155',
+    muted: '#64748b',
+    line: '#cbd5e1',
+    text: '#172033'
+  };
+
+  function val(input) {
+    const value = String(input.value).trim().replace(',', '.');
+    return value === '' ? NaN : Number(value);
+  }
+
+  function fmt(n, digits = 2) {
+    if (!Number.isFinite(n)) return '—';
+    return n.toLocaleString('ru-RU', {
+      maximumFractionDigits: digits,
+      minimumFractionDigits: digits
+    });
+  }
+
+  function rad(deg) {
+    return deg * Math.PI / 180;
+  }
+
+  function sectionCalc(yStart, span, c0, c1, xLE0, sweepDeg) {
+    const sweepRad = rad(sweepDeg);
+    const xLE1 = xLE0 + span * Math.tan(sweepRad);
+    const area = span * (c0 + c1) / 2;
+
+    if (span <= 0 || area <= 0) {
+      return {
+        active: false,
+        yStart, yEnd: yStart, span,
+        c0, c1, xLE0, xLE1, sweepDeg,
+        area: 0, intC2: 0, momentY: 0, momentXLE: 0,
+        mac: c0, yMac: yStart, xMacLE: xLE0, x25: xLE0 + c0 * 0.25
+      };
+    }
+
+    const intC2 = span * (c0 * c0 + c0 * c1 + c1 * c1) / 3;
+    const mac = intC2 / area;
+
+    const yLocalMac = span * (c0 + 2 * c1) / (3 * (c0 + c1));
+    const yMac = yStart + yLocalMac;
+    const xMacLE = xLE0 + yLocalMac * Math.tan(sweepRad);
+    const x25 = xMacLE + mac * 0.25;
+
+    const k = (c1 - c0) / span;
+    const t = Math.tan(sweepRad);
+
+    const localMomentY =
+      c0 * c0 * span * span / 2 +
+      2 * c0 * k * span * span * span / 3 +
+      k * k * span * span * span * span / 4;
+
+    const momentY = yStart * intC2 + localMomentY;
+    const momentXLE = xLE0 * intC2 + t * localMomentY;
+
+    return {
+      active: true,
+      yStart, yEnd: yStart + span, span,
+      c0, c1, xLE0, xLE1, sweepDeg,
+      area, intC2, momentY, momentXLE,
+      mac, yLocalMac, yMac, xMacLE, x25
+    };
+  }
+
+
+  function calc() {
+    const b1 = inputs.useInner.checked ? val(inputs.innerSpan) : 0;
+    const cRoot = val(inputs.rootChord);
+    const b2 = val(inputs.outerSpan);
+    const cgPercent = val(inputs.cgPercent);
+
+    if (![b1, b2, cRoot, cgPercent].every(Number.isFinite)) {
+      return { ok: false, message: 'Заполните размахи, корневую хорду и центровку числами.' };
+    }
+    if (b1 < 0 || b2 < 0 || cRoot <= 0 || b1 + b2 <= 0) {
+      return { ok: false, message: 'Размахи не могут быть отрицательными или одновременно нулевыми. Корневая хорда должна быть больше нуля.' };
+    }
+    if (cgPercent < -100 || cgPercent > 200) {
+      return { ok: false, message: 'Задайте центровку в диапазоне от −100% до 200% САХ.' };
+    }
+
+    const hasInner = b1 > 0;
+    const hasOuter = b2 > 0;
+    // Unused fields must not affect validation, geometry or drawing bounds.
+    const cJointRaw = hasInner ? val(inputs.jointChord) : cRoot;
+    const effectiveJointChord = hasInner ? cJointRaw : cRoot;
+    const cTip = hasOuter ? val(inputs.tipChord) : effectiveJointChord;
+    const sw1 = hasInner ? val(inputs.innerSweep) : 0;
+    const sw2 = hasOuter ? val(inputs.outerSweep) : 0;
+    if (![cJointRaw, cTip, sw1, sw2].every(Number.isFinite) ||
+        cJointRaw < 0 || cTip < 0 || (hasOuter && effectiveJointChord <= 0)) {
+      return { ok: false, message: 'Заполните хорды и стреловидность используемых секций. Концевая хорда может быть нулевой, корневая хорда секции должна быть положительной.' };
+    }
+    if (Math.abs(sw1) >= 90 || Math.abs(sw2) >= 90) {
+      return { ok: false, message: 'Стреловидность используемой секции должна быть строго между −90° и 90°.' };
+    }
+
+    const inner = sectionCalc(0, b1, cRoot, effectiveJointChord, 0, sw1);
+    const outer = sectionCalc(b1, b2, effectiveJointChord, cTip, inner.xLE1, sw2);
+
+    const halfSpan = b1 + b2;
+    const fullSpan = 2 * halfSpan;
+    const halfArea = inner.area + outer.area;
+    const area = 2 * halfArea;
+
+    if (halfArea <= 0 || fullSpan <= 0) {
+      return { ok: false, message: 'Размах и площадь должны быть больше нуля.' };
+    }
+
+    // MAC chord length: area-weighted section MACs.
+    const totalIntC2 = inner.intC2 + outer.intC2;
+    const totalMac = totalIntC2 / halfArea;
+
+    // MAC reference line coordinates: area-weighted positions of the
+    // corresponding section MAC reference lines (not c²-weighted).
+    // On one trapezoid these coincide with its geometrically constructed MAC.
+    const totalY = (inner.area * inner.yMac + outer.area * outer.yMac) / halfArea;
+    const totalXLE = (inner.area * inner.xMacLE + outer.area * outer.xMacLE) / halfArea;
+    const totalX25 = totalXLE + totalMac * 0.25;
+    const cgOffset = totalMac * cgPercent / 100;
+    const cgX = totalXLE + cgOffset;
+    const aspectRatio = fullSpan * fullSpan / area;
+    if (![area, fullSpan, totalMac, totalY, totalXLE, cgX, aspectRatio,
+          inner.xLE1, outer.xLE1].every(Number.isFinite) || totalMac <= 0 || aspectRatio <= 0) {
+      return { ok: false, message: 'Слишком большие или малые значения для расчёта. Проверьте размеры крыла.' };
+    }
+
+    return {
+      ok: true,
+      hasInner, hasOuter,
+      b1, cRoot, cJointRaw, effectiveJointChord, sw1, b2, cTip, sw2,
+      inner, outer,
+      halfSpan, fullSpan, halfArea, area,
+      totalIntC2, totalMac, totalY, totalXLE, totalX25,
+      cgPercent, cgOffset, cgX, aspectRatio
+    };
+  }
+
+  function updateNumbers(data) {
+    if (!data.ok) {
+      for (const node of Object.values(out)) node.textContent = '—';
+      out.macText.textContent = 'Недостаточно данных';
+      out.macDetails.textContent = data.message;
+      out.status.className = 'status bad';
+      out.status.textContent = data.message;
+      return;
+    }
+
+    out.macText.textContent = `САХ = ${fmt(data.totalMac, 2)} мм`;
+    out.heroY.textContent = `${fmt(data.totalY, 2)} мм`;
+    out.heroX.textContent = `${data.totalXLE >= 0 ? '+' : '−'}${fmt(Math.abs(data.totalXLE), 2)} мм`;
+    out.heroC.textContent = `${fmt(data.totalMac, 2)} мм`;
+    out.heroCG.textContent = `${data.cgX >= 0 ? '+' : '−'}${fmt(Math.abs(data.cgX), 2)} мм`;
+    out.macDetails.innerHTML =
+      `Общая САХ крыла: <b>${fmt(data.totalY, 2)} мм от оси</b>; ` +
+      `передняя кромка: <b>${fmt(data.totalXLE, 2)} мм от носка корня</b>.`;
+
+    out.areaText.textContent = `${fmt(data.area / 1_000_000, 2)} м²`;
+    out.spanText.textContent = `${fmt(data.fullSpan, 2)} мм`;
+    out.arText.textContent = fmt(data.aspectRatio, 2);
+    out.innerMacText.textContent = data.inner.active ? `${fmt(data.inner.mac, 2)} мм` : 'нет секции';
+    out.outerMacText.textContent = data.outer.active ? `${fmt(data.outer.mac, 2)} мм` : 'нет секции';
+    out.totalMacText.textContent = `${fmt(data.totalMac, 2)} мм`;
+    out.xMacText.textContent = `${fmt(data.totalXLE, 2)} мм`;
+    out.yMacText.textContent = `${fmt(data.totalY, 2)} мм`;
+    out.cgPercentText.textContent = `${fmt(data.cgPercent, 2)}% САХ`;
+    out.cgOffsetText.textContent = `${fmt(data.cgOffset, 2)} мм`;
+    out.cgXText.textContent = `${fmt(data.cgX, 2)} мм`;
+
+    out.legendInnerMac.textContent = data.inner.active ? `${fmt(data.inner.mac, 2)} мм` : 'нет секции';
+    out.legendInnerExtra.textContent = data.inner.active
+      ? `y = ${fmt(data.inner.yMac, 2)} мм; вклад c² = ${fmt(data.inner.intC2 / 1_000_000, 2)}×10⁶`
+      : 'размах внутренней секции равен 0';
+
+    out.legendOuterMac.textContent = data.outer.active ? `${fmt(data.outer.mac, 2)} мм` : 'нет секции';
+    out.legendOuterExtra.textContent = data.outer.active
+      ? `y = ${fmt(data.outer.yMac, 2)} мм; вклад c² = ${fmt(data.outer.intC2 / 1_000_000, 2)}×10⁶`
+      : 'размах внешней секции равен 0';
+
+    out.legendTotalMac.textContent = `${fmt(data.totalMac, 2)} мм`;
+    out.legendTotalExtra.textContent = `y = ${fmt(data.totalY, 2)} мм; xLE = ${fmt(data.totalXLE, 2)} мм`;
+
+    let warn = [];
+    if (Math.abs(data.sw1) > 35) warn.push('большой угол стреловидности внутренней секции');
+    if (Math.abs(data.sw2) > 35) warn.push('большой угол стреловидности внешней секции');
+    if (data.aspectRatio < 3) warn.push('малое удлинение');
+    if (data.aspectRatio > 18) warn.push('очень большое удлинение');
+
+    if (warn.length) {
+      out.status.className = 'status warn';
+      out.status.textContent = 'Расчет выполнен, но обрати внимание: ' + warn.join(', ') + '.';
+    } else {
+      out.status.className = 'status ok';
+      out.status.textContent = 'Расчет выполнен. Геометрия выглядит нормально для учебной оценки.';
+    }
+  }
+
+  function el(name, attrs = {}, parent = svg) {
+    const node = document.createElementNS(NS, name);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v !== undefined && v !== null) node.setAttribute(k, v);
+    }
+    parent.appendChild(node);
+    return node;
+  }
+
+  function group(id, parent = svg) {
+    return el('g', id ? { id } : {}, parent);
+  }
+
+  function line(p1, p2, cls = '', attrs = {}, parent = svg) {
+    return el('line', {
+      x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y,
+      class: cls,
+      ...attrs
+    }, parent);
+  }
+
+  function circle(p, r, fill, parent = svg, attrs = {}) {
+    return el('circle', { cx: p.x, cy: p.y, r, fill, ...attrs }, parent);
+  }
+
+  function textNode(txt, x, y, attrs = {}, parent = svg) {
+    const t = el('text', { x, y, ...attrs }, parent);
+    t.textContent = txt;
+    return t;
+  }
+
+  function polygon(points, attrs = {}, parent = svg) {
+    return el('polygon', {
+      points: points.map(p => `${p.x},${p.y}`).join(' '),
+      ...attrs
+    }, parent);
+  }
+
+  function path(d, attrs = {}, parent = svg) {
+    return el('path', { d, ...attrs }, parent);
+  }
+
+  function arrowDef() {
+    const defs = el('defs');
+    const marker = el('marker', {
+      id: 'arrow',
+      markerWidth: 10,
+      markerHeight: 10,
+      refX: 8,
+      refY: 3,
+      orient: 'auto',
+      markerUnits: 'strokeWidth'
+    }, defs);
+    path('M0,0 L8,3 L0,6 Z', { fill: '#64748b' }, marker);
+  }
+
+  let labels = [];
+
+  function labelBox(text, anchor, pos, color, options = {}) {
+    labels.push({ text, anchor, y: pos.y, color, left: options.align === 'right' });
+  }
+
+  function drawLabels() {
+    if (compact) {
+      const names = {
+        'ось симметрии': 'Ось крыла', 'стык секций': 'Стык секций',
+        'общая САХ крыла': 'Общая САХ',
+        'САХ внутренней секции': 'САХ внутр.', 'САХ внешней секции': 'САХ внешн.'
+      };
+      labels.forEach((label, index) => {
+        const x = 12 + (index % 2) * (W - 24) / 2;
+        const y = H - 104 + Math.floor(index / 2) * 30;
+        line({ x, y }, { x: x + 14, y }, '', { stroke: label.color, 'stroke-width': 3 });
+        textNode(names[label.text] || label.text.replace(' САХ', ''), x + 20, y + 4, {
+          fill: label.color, 'font-size': 12, 'font-weight': 750, 'font-family': 'system-ui'
+        });
+      });
+      return;
+    }
+    // Separate annotation lanes keep boxes away from the wing and dimensions.
+    for (const left of [true, false]) {
+      const lane = labels.filter(label => label.left === left).sort((a, b) => a.y - b.y);
+      let previousY = 76;
+      lane.forEach((label, index) => {
+        const y = Math.max(previousY + 34, Math.min(H - 32 - (lane.length - 1 - index) * 34, label.y));
+        previousY = y;
+        const edgeX = left ? 153 : W - 225;
+        const g = group();
+        const t = textNode(label.text, edgeX + (left ? -9 : 9), y + 5, {
+          fill: label.color, 'font-size': 14, 'font-weight': 750,
+          'text-anchor': left ? 'end' : 'start', 'font-family': 'system-ui'
+        }, g);
+        const width = typeof t.getComputedTextLength === 'function'
+          ? t.getComputedTextLength() + 18 : label.text.length * 7.5 + 18;
+        const boxX = left ? edgeX - width : edgeX;
+        line(label.anchor, { x: edgeX, y }, 'label-leader', { stroke: label.color }, g);
+        el('rect', { x: boxX, y: y - 15, width, height: 28, rx: 8, class: 'label-box' }, g);
+        // Draw the background over leaders, and the text over the background.
+        g.appendChild(t);
+        circle(label.anchor, 3.5, label.color, g);
+      });
+    }
+  }
+
+  function arrowLine(p1, p2, parent = svg) {
+    line(p1, p2, 'dim', {
+      stroke: '#64748b',
+      'marker-end': 'url(#arrow)'
+    }, parent);
+  }
+
+  function drawMiniBox(data) {
+    const g = group('mini-assembly', assembly);
+    const x = 16, y = 12, w = 320, h = 236;
+
+    el('rect', { x, y, width: w, height: h, rx: 16, fill: 'rgba(255,255,255,0.94)', stroke: '#dbe3ee' }, g);
+    textNode('Как получается общая САХ', x + 16, y + 27, {
+      fill: colors.text, 'font-size': 14, 'font-weight': 850, 'font-family': 'system-ui'
+    }, g);
+    textNode('Общая САХ — вклад площадей секций:', x + 16, y + 50, {
+      fill: colors.muted, 'font-size': 12, 'font-weight': 650, 'font-family': 'system-ui'
+    }, g);
+
+    const total = Math.max(1e-9, data.halfArea);
+    const innerShare = data.inner.area / total;
+    const outerShare = data.outer.area / total;
+
+    const barX = x + 18, barY = y + 72, barW = w - 36, barH = 22;
+    el('rect', { x: barX, y: barY, width: barW * innerShare, height: barH, fill: '#ede9fe' }, g);
+    el('rect', { x: barX + barW * innerShare, y: barY, width: barW * outerShare, height: barH, fill: '#cffafe' }, g);
+    el('rect', { x: barX, y: barY, width: barW, height: barH, fill: 'none', stroke: '#94a3b8' }, g);
+
+    textNode(`внутр.: ${(innerShare * 100).toFixed(0)}%`, barX, barY + 42, {
+      fill: colors.purple, 'font-size': 12, 'font-weight': 800, 'font-family': 'system-ui'
+    }, g);
+    textNode(`внешн.: ${(outerShare * 100).toFixed(0)}%`, barX + barW, barY + 42, {
+      fill: colors.cyan, 'font-size': 12, 'font-weight': 800, 'text-anchor': 'end', 'font-family': 'system-ui'
+    }, g);
+
+    const axisX = x + 28;
+    const axisY = y + 146;
+    const axisW = w - 56;
+    line({ x: axisX, y: axisY }, { x: axisX + axisW, y: axisY }, '', {
+      stroke: '#cbd5e1', 'stroke-width': 2
+    }, g);
+
+    const maxY = data.halfSpan || 1;
+    const mx = yVal => axisX + axisW * (yVal / maxY);
+
+    if (data.inner.active) {
+      const ix = mx(data.inner.yMac);
+      circle({ x: ix, y: axisY }, 6, colors.purple, g);
+      textNode('внутр.', ix, axisY - 14, {
+        fill: colors.purple, 'font-size': 11, 'font-weight': 800, 'text-anchor': 'middle', 'font-family': 'system-ui'
+      }, g);
+    }
+
+    if (data.outer.active) {
+      const ox = mx(data.outer.yMac);
+      circle({ x: ox, y: axisY }, 6, colors.cyan, g);
+      textNode('внешн.', ox, axisY - 30, {
+        fill: colors.cyan, 'font-size': 11, 'font-weight': 800, 'text-anchor': 'middle', 'font-family': 'system-ui'
+      }, g);
+    }
+
+    const tx = mx(data.totalY);
+    circle({ x: tx, y: axisY }, 7, colors.green, g);
+    textNode('итог', tx, axisY + 24, {
+      fill: colors.green, 'font-size': 12, 'font-weight': 850, 'text-anchor': 'middle', 'font-family': 'system-ui'
+    }, g);
+
+    textNode('y на полукрыле', axisX, axisY + 46, {
+      fill: colors.muted, 'font-size': 12, 'font-weight': 650, 'font-family': 'system-ui'
+    }, g);
+
+    textNode(`yобщ = ${fmt(data.totalY, 2)} мм`, x + 16, y + h - 18, {
+      fill: colors.green, 'font-size': 12, 'font-weight': 850, 'font-family': 'system-ui'
+    }, g);
+  }
+
+  function drawSectionConstruction(section, map, color, name, showMac) {
+    if (!section.active || section.span <= 0) return;
+
+    const g = group();
+    const c0 = section.c0;
+    const c1 = section.c1;
+
+    const p0LE = map(section.yStart, section.xLE0);
+    const p0TE = map(section.yStart, section.xLE0 + c0);
+    const p1LE = map(section.yEnd, section.xLE1);
+    const p1TE = map(section.yEnd, section.xLE1 + c1);
+
+    const isNearlyRect = Math.abs(c0 - c1) < 1e-6;
+
+    if (!isNearlyRect) {
+      const rootExt = map(section.yStart, section.xLE0 + c0 + c1);
+      const tipExt = map(section.yEnd, section.xLE1 - c0);
+      const rootMid = map(section.yStart, section.xLE0 + c0 / 2);
+      const tipMid = map(section.yEnd, section.xLE1 + c1 / 2);
+
+      line(p0TE, rootExt, 'construction', {}, g);
+      line(p1LE, tipExt, 'construction', {}, g);
+      line(tipExt, rootExt, 'construction', {}, g);
+      line(rootMid, tipMid, 'construction-mid', {}, g);
+
+      circle(rootExt, 3.8, colors.orange, g);
+      circle(tipExt, 3.8, colors.orange, g);
+    }
+
+    if (!showMac) return;
+    const macP1 = map(section.yMac, section.xMacLE);
+    const macP2 = map(section.yMac, section.xMacLE + section.mac);
+    line(macP1, macP2, '', {
+      stroke: color,
+      'stroke-width': 3.2,
+      'stroke-linecap': 'round',
+      'vector-effect': 'non-scaling-stroke'
+    }, g);
+    circle(map(section.yMac, section.xMacLE + section.mac * 0.5), 5.2, color, g);
+
+    const isInnerSection = section.yStart < 1e-9;
+    const labelPos = isInnerSection
+      ? { x: macP2.x + 42, y: macP2.y + 16 }
+      : { x: macP2.x + 36, y: macP2.y - 26 };
+
+    labelBox(name, macP2, labelPos, color, { align: 'left' });
+  }
+
+  function drawSVG(data) {
+    compact = Boolean(mobileScreen?.matches) && !zoomed;
+    $('results').setAttribute('data-compact', String(compact));
+    W = compact ? Math.max(250, svg.clientWidth || 320) : 980;
+    H = compact ? 620 : 740;
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.innerHTML = '';
+    assembly.innerHTML = '';
+    assemblyPanel.hidden = !data.ok || !inputs.showConstruction.checked;
+    labels = [];
+    arrowDef();
+
+    textNode(compact ? 'Правое полукрыло' : 'Правое полукрыло, вид сверху', compact ? 16 : 28, 30, { class: 'svg-title' });
+
+    if (!data.ok) {
+      textNode('Введите корректные размеры', W / 2, 250, {
+        fill: '#991b1b', 'font-size': compact ? 14 : 18, 'font-weight': 800, 'font-family': 'system-ui', 'text-anchor': 'middle'
+      });
+      return;
+    }
+
+    const { cRoot, effectiveJointChord: cJoin, cTip, b1, halfSpan } = data;
+    const xJoin = data.inner.xLE1;
+    const xTip = data.outer.xLE1;
+
+    const sections = [data.inner, data.outer].filter(section => section.active);
+    const xs = [
+      0, cRoot, data.totalXLE, data.totalXLE + data.totalMac, data.cgX
+    ];
+    for (const section of sections) {
+      xs.push(section.xLE0, section.xLE0 + section.c0, section.xLE1, section.xLE1 + section.c1);
+      if (inputs.showConstruction.checked && Math.abs(section.c0 - section.c1) >= 1e-6) {
+        xs.push(section.xLE0 + section.c0 + section.c1, section.xLE1 - section.c0);
+      }
+    }
+
+    const xMin = Math.min(...xs);
+    const xMax = Math.max(...xs);
+    const yMin = 0;
+    const yMax = halfSpan;
+
+    const marginL = compact ? 52 : 225, marginR = compact ? 26 : 260;
+    const marginT = compact ? 100 : 120, marginB = compact ? 210 : 100;
+    const availableW = W - marginL - marginR;
+    const availableH = H - marginT - marginB;
+    const scale = Math.min(
+      availableW / Math.max(1, xMax - xMin),
+      availableH / Math.max(1, yMax - yMin)
+    );
+
+    const offsetX = marginL - xMin * scale;
+    const offsetY = marginT - yMin * scale;
+
+    const map = (y, x) => ({ x: offsetX + x * scale, y: offsetY + y * scale });
+
+    const pRootLE = map(0, 0);
+    const pRootTE = map(0, cRoot);
+    const pJoinLE = map(b1, xJoin);
+    const pJoinTE = map(b1, xJoin + cJoin);
+    const pTipLE = map(halfSpan, xTip);
+    const pTipTE = map(halfSpan, xTip + cTip);
+
+    const wingPts = [pRootLE];
+    if (data.hasInner && data.hasOuter) wingPts.push(pJoinLE);
+    wingPts.push(pTipLE, pTipTE);
+    if (data.hasInner && data.hasOuter) wingPts.push(pJoinTE);
+    wingPts.push(pRootTE);
+
+    const wingG = group('wing');
+    polygon(wingPts, { class: 'wing-fill' }, wingG);
+    polygon(wingPts, { class: 'wing-outline' }, wingG);
+
+    // Coordinate axes: origin at the root leading edge.
+    const axesG = group('coord-axes');
+    const axesOrigin = pRootLE;
+    const xAxisEnd = { x: compact ? Math.min(W - 16, axesOrigin.x + 48) : axesOrigin.x + 84, y: axesOrigin.y };
+    const yAxisEnd = { x: axesOrigin.x, y: axesOrigin.y + (compact ? 48 : 84) };
+
+    line(axesOrigin, xAxisEnd, '', {
+      stroke: '#475569',
+      'stroke-width': 1.7,
+      'marker-end': 'url(#arrow)',
+      'vector-effect': 'non-scaling-stroke'
+    }, axesG);
+    line(axesOrigin, yAxisEnd, '', {
+      stroke: '#475569',
+      'stroke-width': 1.7,
+      'marker-end': 'url(#arrow)',
+      'vector-effect': 'non-scaling-stroke'
+    }, axesG);
+    circle(axesOrigin, 3.5, '#475569', axesG);
+    textNode('X', xAxisEnd.x + (compact ? -8 : 10), xAxisEnd.y - (compact ? 24 : 8), {
+      fill: '#475569', 'font-size': 12, 'font-weight': 800, 'font-family': 'system-ui'
+    }, axesG);
+    textNode('Y', yAxisEnd.x - 16, yAxisEnd.y + 8, {
+      fill: '#475569', 'font-size': 12, 'font-weight': 800, 'font-family': 'system-ui'
+    }, axesG);
+    textNode('(0, 0)', axesOrigin.x - 2, axesOrigin.y - 8, {
+      fill: '#475569', 'font-size': 11, 'font-weight': 700, 'font-family': 'system-ui',
+      'text-anchor': compact ? 'end' : 'start'
+    }, axesG);
+
+    line(map(0, xMin + 10), map(0, xMax - 10), 'axis-line');
+
+    if (b1 > 0 && data.outer.active) {
+      line(pJoinLE, pJoinTE, 'join-line');
+    }
+
+    labelBox('ось симметрии', map(0, cRoot * 0.08), { x: pRootLE.x - 24, y: pRootLE.y + 34 }, colors.slate, { align: 'right' });
+
+    if (b1 > 0 && data.outer.active) {
+      labelBox('стык секций', pJoinLE, { x: pJoinLE.x - 34, y: pJoinLE.y + 18 }, colors.muted, { align: 'right' });
+    }
+
+    if (inputs.showConstruction.checked) {
+      drawSectionConstruction(data.inner, map, colors.purple, 'САХ внутренней секции', sections.length > 1);
+      drawSectionConstruction(data.outer, map, colors.cyan, 'САХ внешней секции', sections.length > 1);
+    }
+
+    const pMac1 = map(data.totalY, data.totalXLE);
+    const pMac2 = map(data.totalY, data.totalXLE + data.totalMac);
+    const pMac1Axis = map(0, data.totalXLE);
+    const pMac2Axis = map(0, data.totalXLE + data.totalMac);
+
+    line(pMac1, pMac2, 'mac-total');
+    line(pMac1, pMac1Axis, 'projection');
+    line(pMac2, pMac2Axis, 'projection');
+
+    const pCG = map(data.totalY, data.cgX);
+    circle(pCG, 7, '#dc2626', svg, {stroke:'#ffffff','stroke-width':2});
+    labelBox(`ЦТ ${fmt(data.cgPercent, 2)}% САХ`, pCG,
+      { x: pCG.x + 39, y: pCG.y - 28 }, colors.red, { align: 'left' });
+    labelBox('общая САХ крыла', pMac1, { x: pMac1.x - 36, y: pMac1.y + 16 }, colors.green, { align: 'right' });
+
+    // Dimensions.
+    const dimX = compact ? 32 : 195;
+    arrowLine({ x: dimX, y: map(0, 0).y }, { x: dimX, y: map(halfSpan, 0).y });
+    arrowLine({ x: dimX, y: map(halfSpan, 0).y }, { x: dimX, y: map(0, 0).y });
+    const dimMidY = (pRootLE.y + pTipLE.y) / 2;
+    textNode(`полуразмах ${fmt(halfSpan, 2)} мм`, dimX - 12, dimMidY, {
+      fill: colors.muted, 'font-size': 14, 'font-weight': 700, 'text-anchor': 'middle', 'font-family': 'system-ui',
+      transform: `rotate(-90 ${dimX - 12} ${dimMidY})`
+    });
+
+    const chordY = pRootTE.y - 38;
+    arrowLine({ x: pRootLE.x, y: chordY }, { x: pRootTE.x, y: chordY });
+    arrowLine({ x: pRootTE.x, y: chordY }, { x: pRootLE.x, y: chordY });
+    const dimensionX = value => compact ? Math.max(68, Math.min(W - 68, value)) : value;
+    textNode(`c0 ${fmt(cRoot, 2)} мм`, dimensionX((pRootLE.x+pRootTE.x)/2), chordY - 10, {
+      fill: colors.muted, 'font-size': 14, 'font-weight': 700, 'text-anchor': 'middle', 'font-family': 'system-ui'
+    });
+
+    const tipY = pTipLE.y + 34;
+    arrowLine({ x: pTipLE.x, y: tipY }, { x: pTipTE.x, y: tipY });
+    arrowLine({ x: pTipTE.x, y: tipY }, { x: pTipLE.x, y: tipY });
+    textNode(`ct ${fmt(cTip, 2)} мм`, dimensionX((pTipLE.x+pTipTE.x)/2), tipY + 24, {
+      fill: colors.muted, 'font-size': 14, 'font-weight': 700, 'text-anchor': 'middle', 'font-family': 'system-ui'
+    });
+
+    if (inputs.showConstruction.checked) {
+      drawMiniBox(data);
+    }
+    drawLabels();
+  }
+
+  let savedInnerSpan = val(inputs.innerSpan);
+  let previousInnerEnabled;
+
+  function syncSectionControls() {
+    const span = val(inputs.innerSpan);
+    if (inputs.useInner.checked && span > 0) savedInnerSpan = span;
+    if (span === 0) inputs.useInner.checked = false;
+    const hasInner = inputs.useInner.checked && span > 0;
+    const enabled = inputs.useInner.checked;
+    if (enabled !== previousInnerEnabled) {
+      $('innerSection').open = enabled;
+      if (!enabled) $('outerSection').open = true;
+      previousInnerEnabled = enabled;
+    }
+    inputs.innerSpan.disabled = !inputs.useInner.checked;
+    inputs.rootChord.disabled = !enabled;
+    inputs.jointChord.disabled = !hasInner;
+    inputs.innerSweep.disabled = !hasInner;
+    inputs.outerRootChord.readOnly = enabled;
+    inputs.outerRootChord.value = enabled ? inputs.jointChord.value : inputs.rootChord.value;
+    $('outerRootHint').textContent = enabled
+      ? 'Равна конечной хорде внутренней секции; изменяется там.'
+      : 'Корневая хорда всего крыла у оси симметрии.';
+    const noOuter = val(inputs.outerSpan) === 0;
+    inputs.tipChord.disabled = noOuter;
+    inputs.outerSweep.disabled = noOuter;
+  }
+
+  function update() {
+    syncSectionControls();
+    const data = calc();
+    updateNumbers(data);
+    drawSVG(data);
+  }
+
+  Object.values(inputs).forEach(input => input.addEventListener('input', () => {
+    if (input === inputs.useInner) {
+      inputs.innerSpan.value = inputs.useInner.checked ? savedInnerSpan : 0;
+    }
+    if (input === inputs.outerRootChord && !inputs.useInner.checked) {
+      inputs.rootChord.value = inputs.outerRootChord.value;
+    }
+    update();
+  }));
+  for (const [name, input] of Object.entries(inputs)) {
+    if (name === 'useInner' || name === 'showConstruction') continue;
+    // Select after the click's default caret placement, and on keyboard focus.
+    input.addEventListener('focus', () => input.select());
+    input.addEventListener('click', () => input.select());
+  }
+  diagramZoom.addEventListener('click', () => {
+    zoomed = !zoomed;
+    diagramWrap.setAttribute('data-zoomed', String(zoomed));
+    diagramZoom.setAttribute('aria-pressed', String(zoomed));
+    diagramZoom.textContent = zoomed ? 'Вписать в экран' : 'Увеличить';
+    update();
+    centerDiagram();
+  });
+  update();
+  function centerDiagram() {
+    const wrap = svg.parentElement;
+    if (wrap) wrap.scrollLeft = Math.max(0, (wrap.scrollWidth - wrap.clientWidth) / 2);
+  }
+  globalThis.addEventListener?.('resize', () => {
+    update();
+    centerDiagram();
+  });
+  centerDiagram();
+})();
+</script>
+</body>
+</html>
