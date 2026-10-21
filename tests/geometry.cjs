@@ -177,3 +177,40 @@ test('SVG uses calculated positions and one scale; axes start at root LE', () =>
   assert.equal(a.assembly.children.length, 0);
   assert.ok(flatten(a.svg).some(node => node.attrs.class === 'mac-total'));
 });
+
+test('sign buttons change decimal sweep and CG values, update drawing and respect inactive fields', () => {
+  const a = app();
+  const p = { innerSpan: 400, rootChord: 400, jointChord: 200, outerSpan: 600, tipChord: 100, innerSweep: 15.25, outerSweep: 25.5 };
+  set(a, p);
+  const original = svgSnapshot(a);
+  for (const name of ['innerSweep', 'outerSweep', 'cgPercent']) {
+    const before = Number(a.inputs[name].value);
+    const button = a.elements[name + 'Sign'];
+    assert.equal(button.disabled, false);
+    button.listeners.click();
+    near(Number(a.inputs[name].value), -before);
+    assert.equal(a.calc().ok, true);
+    assert.notEqual(svgSnapshot(a), original);
+    button.listeners.click();
+    near(Number(a.inputs[name].value), before);
+    assert.equal(svgSnapshot(a), original);
+  }
+  set(a, { innerSpan: 0, innerSweep: 15, outerSweep: 0 });
+  assert.equal(a.elements.innerSweepSign.disabled, true);
+  a.elements.innerSweepSign.listeners.click();
+  assert.equal(a.inputs.innerSweep.value, '15');
+  a.elements.outerSweepSign.listeners.click();
+  assert.equal(a.inputs.outerSweep.value, '0');
+  assert.equal(a.calc().ok, true);
+  set(a, { ...p, outerSpan: 0 });
+  assert.equal(a.elements.outerSweepSign.disabled, true);
+  a.inputs.innerSweep.value = ''; a.inputs.innerSweep.listeners.input();
+  assert.equal(a.elements.innerSweepSign.disabled, true);
+  a.elements.innerSweepSign.listeners.click();
+  assert.equal(a.inputs.innerSweep.value, '');
+  assert.equal(a.out.heroC.textContent, '—');
+  a.inputs.innerSweep.value = '12.5'; a.inputs.innerSweep.listeners.input();
+  a.elements.innerSweepSign.listeners.click();
+  assert.equal(a.inputs.innerSweep.value, '-12.5');
+  assert.equal(a.calc().ok, true);
+});

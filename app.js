@@ -545,6 +545,7 @@
 
   let savedInnerSpan = val(inputs.innerSpan);
   let previousInnerEnabled;
+  const signedFields = ['innerSweep', 'outerSweep', 'cgPercent'];
 
   function syncSectionControls() {
     const span = val(inputs.innerSpan);
@@ -569,6 +570,9 @@
     const noOuter = val(inputs.outerSpan) === 0;
     inputs.tipChord.disabled = noOuter;
     inputs.outerSweep.disabled = noOuter;
+    for (const name of signedFields) {
+      $(name + 'Sign').disabled = inputs[name].disabled || inputs[name].readOnly || !Number.isFinite(val(inputs[name]));
+    }
   }
 
   function update() {
@@ -592,6 +596,15 @@
     // Select after the click's default caret placement, and on keyboard focus.
     input.addEventListener('focus', () => input.select());
     input.addEventListener('click', () => input.select());
+  }
+  for (const name of signedFields) {
+    $(name + 'Sign').addEventListener('click', () => {
+      const input = inputs[name];
+      const value = val(input);
+      if (input.disabled || input.readOnly || !Number.isFinite(value)) return;
+      input.value = String(-value);
+      update();
+    });
   }
   diagramZoom.addEventListener('click', () => {
     zoomed = !zoomed;

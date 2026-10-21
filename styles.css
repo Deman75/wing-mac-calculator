@@ -101,6 +101,15 @@
       border-color: var(--blue);
     }
 
+    .signed-input { display:flex; align-items:stretch; gap:6px; min-width:0; }
+    .signed-input input { min-width:0; flex:1; }
+    .sign-toggle {
+      flex:0 0 44px; min-height:44px; padding:0; border:1px solid #cbd5e1;
+      border-radius:10px; background:#f8fafc; color:var(--blue); font:700 22px system-ui; cursor:pointer;
+    }
+    .sign-toggle:focus-visible { outline:3px solid #93c5fd; outline-offset:2px; }
+    .sign-toggle:disabled { color:#94a3b8; background:#f1f5f9; cursor:not-allowed; }
+
     .checkrow {
       display: flex;
       align-items: flex-start;
